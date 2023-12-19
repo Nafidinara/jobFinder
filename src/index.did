@@ -1,0 +1,4 @@
+service: () -> {
+    getAllJobs: () -> (vec record {id:text; title:text; authorEmail:text; bookmark:int64; authorId:principal; createdAt:nat64; type:variant {Onsite; Remote; Hybrid}; authorName:text; description:text; level:variant {Entry; Intermediate; Expert}; authorPhone:text; updatedAt:opt nat64; price:int64; skills:vec record {name:text; createdAt:nat64}}) query;
+    postJob: (record {title:text; authorEmail:text; bookmark:int64; type:variant {Onsite; Remote; Hybrid}; authorName:text; description:text; level:variant {Entry; Intermediate; Expert}; authorPhone:text; price:int64; skills:vec record {name:text; createdAt:nat64}}) -> (record {id:text; title:text; authorEmail:text; bookmark:int64; authorId:principal; createdAt:nat64; type:variant {Onsite; Remote; Hybrid}; authorName:text; description:text; level:variant {Entry; Intermediate; Expert}; authorPhone:text; updatedAt:opt nat64; price:int64; skills:vec record {name:text; createdAt:nat64}});
+}
