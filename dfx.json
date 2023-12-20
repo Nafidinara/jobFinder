@@ -4,7 +4,7 @@
       "type": "custom",
       "main": "src/index.ts",
       "candid": "src/index.did",
-      "build": "npx azle job_finder",
+      "build": "npx azle job_finder --verbose",
       "wasm": ".azle/job_finder/job_finder.wasm",
       "gzip": true
     }

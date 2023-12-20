@@ -15,13 +15,15 @@ import {
     ic,
     Opt,
     Variant,
-    Principal
+    Void,
+    Principal, int64, Null
 } from 'azle';
 
 import { v4 as uuidv4 } from 'uuid';
-import {Error, Job, JobPayload} from "./types";
+import {Error, Job, JobPayload, User} from "./types";
 
-const jobStorage = StableBTreeMap(text, Job, 0);
+const jobs = StableBTreeMap(text, Job, 0);
+const users = StableBTreeMap(Principal, User, 1);
 
 export default Canister({
     /**
@@ -29,25 +31,35 @@ export default Canister({
      * @param JobPayload - Contain all the job payload.
      * @returns the newly created job instance.
      */
-    postJob: update([JobPayload], Job, (payload) => {
+    createJob: update([JobPayload], Job, (payload) => {
+        const authorId = ic.caller();
+
         const job: typeof Job = {
             id: uuidv4(),
+            authorId,
+            bookmark: 2,
             createdAt: ic.time(),
-            createdAt: ic.time(),
-            authorId: ic.caller().toString(),
+            updatedAt: Null,
             ...payload
-        };
+        }
 
-        jobStorage.insert(job.id, job);
+        jobs.insert(job.id, job)
 
-        return Ok(job);
+        return job;
+    }),
+    /**
+     * Fetch all jobs.
+     * @returns a list of all jobs.
+     */
+    getAllJobs: query([], Vec(Job), () => {
+        return jobs.values();
     }),
     /**
      * Fetch all users.
      * @returns a list of all users.
      */
-    getAllJobs: query([], Vec(Job), () => {
-        return jobStorage.values();
+    getAllUsers: query([], Vec(User), () => {
+        return users.values();
     }),
 });
 
