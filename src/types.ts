@@ -1,14 +1,4 @@
-import {
-  Variant,
-  Opt,
-  Record,
-  nat64,
-  text,
-  int64,
-  Null,
-  Vec,
-  Principal
-} from 'azle'
+import {int64, nat64, Null, Opt, Principal, Record, text, Variant, Vec} from "azle";
 
 const Category = Record({
   name: text
@@ -26,20 +16,40 @@ const Payment = Variant({
   Fixed: Null
 })
 
+export const User = Record({
+  id: Principal,
+  createdAt: nat64,
+  updatedAt: Opt(nat64),
+  name: text,
+  username: text,
+  email: text,
+  phone: text,
+  password: text
+})
+
+export const UserPayload = Record({
+  name: text,
+  username: text,
+  email: text,
+  phone: text,
+  password: text
+})
+
 export const Job = Record({
   id: text,
   authorId: Principal,
-  bookmark: int64,
+  applies: Vec(Principal),
+  applyCount: int64,
   createdAt: nat64,
   updatedAt: Opt(nat64),
+  authorName: text,
+  authorPhone: text,
+  authorEmail: text,
   title: text,
   description: text,
   price: int64,
   level: Level,
   payment: Payment,
-  authorName: text,
-  authorPhone: text,
-  authorEmail: text,
   skills: Vec(Category)
 })
 
@@ -49,9 +59,6 @@ export const JobPayload = Record({
   price: int64,
   level: Level,
   payment: Payment,
-  authorName: text,
-  authorPhone: text,
-  authorEmail: text,
   skills: Vec(Category)
 })
 

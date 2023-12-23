@@ -1,97 +1,7 @@
-import {
-    Canister,
-    Err,
-    ic,
-    int64,
-    nat64,
-    Null,
-    Ok,
-    Opt,
-    Principal,
-    query,
-    Record,
-    Result,
-    Some,
-    StableBTreeMap,
-    text,
-    update,
-    Variant,
-    Vec
-} from 'azle'
+import {Canister, Err, ic, Null, Ok, Principal, query, Result, Some, StableBTreeMap, text, update, Vec} from 'azle'
 
 import {v4 as uuidV4} from 'uuid'
-// import {Error, Job, JobPayload } from "./types";
-
-const Category = Record({
-    name: text
-})
-
-const Level = Variant({
-    Entry: Null,
-    Intermediate: Null,
-    Expert: Null
-})
-
-const Payment = Variant({
-    Hourly: Null,
-    Monthly: Null,
-    Fixed: Null
-})
-
-const User = Record({
-    id: Principal,
-    createdAt: nat64,
-    updatedAt: Opt(nat64),
-    name: text,
-    username: text,
-    email: text,
-    phone: text,
-    password: text
-})
-
-const UserPayload = Record({
-    name: text,
-    username: text,
-    email: text,
-    phone: text,
-    password: text
-})
-
-const Job = Record({
-    id: text,
-    authorId: Principal,
-    bookmark: int64,
-    createdAt: nat64,
-    updatedAt: Opt(nat64),
-    authorName: text,
-    authorPhone: text,
-    authorEmail: text,
-    title: text,
-    description: text,
-    price: int64,
-    level: Level,
-    payment: Payment,
-    skills: Vec(Category)
-})
-
-const JobPayload = Record({
-    // authorName: text,
-    // authorPhone: text,
-    // authorEmail: text,
-    title: text,
-    description: text,
-    price: int64,
-    level: Level,
-    payment: Payment,
-    skills: Vec(Category)
-})
-
-const Error = Variant({
-    NotFound: text,
-    InvalidPayload: text,
-    AuthenticationError: text,
-    DuplicateUser: text
-})
+import {Error, Job, JobPayload, User, UserPayload} from "./types";
 
 let currentUser: typeof User | undefined
 
@@ -99,7 +9,11 @@ const jobs = StableBTreeMap(text, Job, 0)
 const users = StableBTreeMap(Principal, User, 1)
 
 export default Canister({
-    // create new user
+    /**
+     * Creates a new user.
+     * @param UserPayload - Contain all the user payload.
+     * @returns the newly created user instance.
+     */
     registerUser: update([UserPayload], Result(User, Error), (payload) => {
         const user = users
             .values()
@@ -120,7 +34,12 @@ export default Canister({
         return Ok(newUser)
     }),
 
-    // authenticate user
+    /**
+     * authenticate user.
+     * @param text - Contain user username.
+     * @param text - Contain user password.
+     * @returns success login message.
+     */
     loginUser: update(
         [text, text],
         Result(text, Error),
@@ -139,7 +58,10 @@ export default Canister({
         }
     ),
 
-    // logout user
+    /**
+     * logout user.
+     * @returns success logout message.
+     */
     logOut: update([], Result(text, Error), () => {
         if (!currentUser) {
             return Err({AuthenticationError: 'no logged in user'})
@@ -148,7 +70,10 @@ export default Canister({
         return Ok('Logged out successfully.')
     }),
 
-    // get current user
+    /**
+     * get current user profile.
+     * @returns current user username.
+     */
     getCurrentUser: query([], Result(text, Error), () => {
         if (!currentUser) {
             return Err({AuthenticationError: 'no logged in user.'})
@@ -170,7 +95,8 @@ export default Canister({
         const job: typeof Job = {
             id: uuidV4(),
             authorId: currentUser.id,
-            bookmark: 0,
+            applies: [],
+            applyCount: 0,
             createdAt: ic.time(),
             updatedAt: Null,
             authorName: currentUser.name,
@@ -191,7 +117,7 @@ export default Canister({
         return Ok(jobs.values())
     }),
     /**
-     * Fetch user by id.
+     * Fetch job by id.
      * @param id - ID of the job.
      * @returns a job instance if exists or an error if job doesn't exist.
      */
@@ -206,6 +132,12 @@ export default Canister({
 
         return Ok(job)
     }),
+    /**
+     * Fetch job by id and update it.
+     * @param id - ID of the job.
+     * @param JobPayload - Contain all the job payload.
+     * @returns a job instance if exists or an error if job doesn't exist.
+     */
     updateJob: update([text, JobPayload], Result(Job, Error), (id, payload) => {
 
         if (!currentUser) {
@@ -228,6 +160,12 @@ export default Canister({
         jobs.insert(job.id, updatedJob)
         return Ok(updatedJob)
     }),
+    /**
+     * Fetch job by id and update it.
+     * @param id - ID of the job.
+     * @param JobPayload - Contain all the job payload.
+     * @returns a job instance if exists or an error if job doesn't exist.
+     */
     deleteJob: update([text], Result(Job, Error), (id) => {
         if (!currentUser) {
             return Err({AuthenticationError: 'you need to login first.'})
@@ -249,7 +187,41 @@ export default Canister({
 
         return Ok(deletedJob.Some)
     }),
-    
+    /**
+     * User can apply to a job.
+     * @param id - ID of the job.
+     * @returns a job instance if exists or an error if job doesn't exist.
+     */
+    applyJob: update([text], Result(Job, Error), (id) => {
+        if (!currentUser) {
+            return Err({AuthenticationError: 'you need to login first.'})
+        }
+
+        const jobData = jobs.get(id);
+
+        const job = jobData.Some
+
+        if (job.authorId.toString() === currentUser.id.toString()) {
+            return Err({AuthenticationError: `you can't apply in your own job posted.`})
+        }
+
+        const isApply = job.applies.filter(apply => apply.toString() === currentUser?.id.toString());
+
+        if (isApply.length > 0) {
+            return Err({DuplicateUser: `you already apply in this job.`})
+        }
+
+        const updatedJob = {
+            ...job,
+            applyCount: BigInt(job.applyCount) + BigInt(1),
+            applies: [...job.applies, currentUser.id],
+            updatedAt: Some(ic.time())
+        }
+
+        jobs.insert(job.id, updatedJob)
+        return Ok(updatedJob)
+    }),
+
 })
 
 // ID generator
