@@ -1,4 +1,4 @@
-import {int64, nat64, Null, Opt, Principal, Record, text, Variant, Vec} from "azle";
+import {bool, int64, nat64, Null, Opt, Principal, Record, text, Variant, Vec} from "azle";
 
 const Category = Record({
   name: text
@@ -24,7 +24,7 @@ export const User = Record({
   username: text,
   email: text,
   phone: text,
-  password: text
+  isLogged: bool
 })
 
 export const UserPayload = Record({
@@ -32,7 +32,6 @@ export const UserPayload = Record({
   username: text,
   email: text,
   phone: text,
-  password: text
 })
 
 export const Job = Record({
